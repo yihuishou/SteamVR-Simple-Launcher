@@ -60,6 +60,9 @@ const EMBED_FILES: &[&str] = &[
     // 英文资源
     "en-us\\Microsoft.ui.xaml.dll.mui",
     "en-us\\Microsoft.UI.Xaml.Phone.dll.mui",
+    // XAML 主题资源（ComboBox 等控件背景需要）
+    "Microsoft.UI.Xaml\\Assets\\map.html",
+    "Microsoft.UI.Xaml\\Assets\\NoiseAsset_256x256_PNG.png",
 ];
 
 /// 扫描 target 目录，生成嵌入式运行时数据文件
