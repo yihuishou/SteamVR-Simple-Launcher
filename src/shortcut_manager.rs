@@ -191,5 +191,5 @@ mod tests {
             EMBEDDED_ICON_DATA.len() >= 4 && EMBEDDED_ICON_DATA[0..2] == [0, 0],
             "图标数据不是有效的 ICO 格式"
         );
-   }
+    }
 }

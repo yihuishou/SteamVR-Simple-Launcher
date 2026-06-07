@@ -82,7 +82,7 @@ pub fn find_vrstartup_in_dir(dir: &str) -> Option<SteamPaths> {
     search_vrstartup(dir_path)
 }
 
-  /// 递归搜索目录下是否存在 `vrstartup.exe`，找到后直接使用其所在目录
+/// 递归搜索目录下是否存在 `vrstartup.exe`，找到后直接使用其所在目录
 fn search_vrstartup(dir: &Path) -> Option<SteamPaths> {
     for entry in fs::read_dir(dir).ok()? {
         let entry = entry.ok()?;
