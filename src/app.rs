@@ -182,6 +182,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
         button("重新检测")
             .on_click(detect_steam)
             .enabled(!is_working)
+            .margin(Thickness { left: 0.0, top: 0.0, right: 0.0, bottom: 6.0 })
             .into(),
         button("选择 SteamVR 安装路径")
             .on_click(move || {
@@ -238,6 +239,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
         button("应用更改")
             .on_click(apply_language)
             .enabled(!is_working)
+            .margin(Thickness { left: 0.0, top: 0.0, right: 0.0, bottom: 6.0 })
             .into(),
         text_block("⚠️ 需重启 Steam 生效")
             .foreground(Color::rgb(220, 180, 60))
@@ -261,7 +263,8 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
             Color::rgb(40, 120, 200)
         } else {
             Color::rgb(60, 60, 60)
-        });
+        })
+        .margin(Thickness { left: 0.0, top: 4.0, right: 0.0, bottom: 0.0 });
 
     // Toast 通知
     let toast_el: Element = if let Some((ref message, success)) = toast {
