@@ -1,6 +1,5 @@
 use std::fmt;
-use winreg::RegKey;
-use winreg::enums::{HKEY_CURRENT_USER, KEY_WRITE};
+use windows_registry::CURRENT_USER;
 
 /// 语言错误类型
 #[derive(Debug)]
@@ -28,6 +27,12 @@ impl From<std::io::Error> for LanguageError {
     }
 }
 
+impl From<windows_result::Error> for LanguageError {
+    fn from(err: windows_result::Error) -> Self {
+        LanguageError::RegistryRead(err.to_string())
+    }
+}
+
 /// Steam 支持的语言列表 (显示名称, 注册表值)
 pub const LANGUAGES: &[(&str, &str)] = &[
     ("English", "english"),
@@ -47,10 +52,8 @@ pub const LANGUAGES: &[(&str, &str)] = &[
 /// 键路径: HKEY_CURRENT_USER\Software\Valve\Steam\Language
 /// 如果键不存在，返回默认值 "english"
 pub fn read_steam_language() -> Result<String, LanguageError> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-
-    if let Ok(steam_key) = hkcu.open_subkey_with_flags("Software\\Valve\\Steam", winreg::enums::KEY_READ) {
-        if let Ok(lang) = steam_key.get_value::<String, _>("Language") {
+    if let Ok(steam_key) = CURRENT_USER.open(r"Software\Valve\Steam") {
+        if let Ok(lang) = steam_key.get_string("Language") {
             return Ok(lang);
         }
     }
@@ -63,11 +66,10 @@ pub fn read_steam_language() -> Result<String, LanguageError> {
 /// 键路径: HKEY_CURRENT_USER\Software\Valve\Steam\Language
 /// 如果键不存在则自动创建
 pub fn write_steam_language(lang: &str) -> Result<(), LanguageError> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let (key, _disp) = hkcu
-        .create_subkey_with_flags("Software\\Valve\\Steam", KEY_WRITE)
+    let key = CURRENT_USER
+        .create(r"Software\Valve\Steam")
         .map_err(|e| LanguageError::RegistryWrite(e.to_string()))?;
-    key.set_value("Language", &lang)
+    key.set_string("Language", lang)
         .map_err(|e| LanguageError::RegistryWrite(e.to_string()))?;
     Ok(())
 }

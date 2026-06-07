@@ -1,10 +1,9 @@
 use std::fs;
 use std::path::Path;
-use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE, KEY_READ};
-use winreg::RegKey;
+use windows_registry::{CURRENT_USER, LOCAL_MACHINE};
 
 /// SteamVR 路径信息
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SteamPaths {
     /// SteamVR 安装根目录
     pub steamvr_path: String,
@@ -34,31 +33,28 @@ const STEAMVR_EXE_REL: &str = "steamapps\\common\\SteamVR\\bin\\win64\\vrstartup
 
 /// 从 HKEY_CURRENT_USER 读取 Steam 路径
 fn detect_from_hkcu() -> Result<String, SteamPathError> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let key = hkcu
-        .open_subkey_with_flags("Software\\Valve\\Steam", KEY_READ)
+    let key = CURRENT_USER
+        .open(r"Software\Valve\Steam")
         .map_err(|e| SteamPathError::RegistryError(format!("HKCU 子键打开失败: {}", e)))?;
-    key.get_value("SteamPath")
+    key.get_string("SteamPath")
         .map_err(|e| SteamPathError::RegistryError(format!("HKCU SteamPath 读取失败: {}", e)))
 }
 
 /// 从 HKEY_LOCAL_MACHINE (WOW6432Node) 读取 Steam 路径
 fn detect_from_hklm_wow64() -> Result<String, SteamPathError> {
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let key = hklm
-        .open_subkey_with_flags("SOFTWARE\\WOW6432Node\\Valve\\SteamInstall", KEY_READ)
+    let key = LOCAL_MACHINE
+        .open(r"SOFTWARE\WOW6432Node\Valve\SteamInstall")
         .map_err(|e| SteamPathError::RegistryError(format!("HKLM WOW6432Node 子键打开失败: {}", e)))?;
-    key.get_value("InstallPath")
+    key.get_string("InstallPath")
         .map_err(|e| SteamPathError::RegistryError(format!("HKLM WOW6432Node InstallPath 读取失败: {}", e)))
 }
 
 /// 从 HKEY_LOCAL_MACHINE 读取 Steam 路径
 fn detect_from_hklm() -> Result<String, SteamPathError> {
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let key = hklm
-        .open_subkey_with_flags("SOFTWARE\\Valve\\SteamInstall", KEY_READ)
+    let key = LOCAL_MACHINE
+        .open(r"SOFTWARE\Valve\SteamInstall")
         .map_err(|e| SteamPathError::RegistryError(format!("HKLM 子键打开失败: {}", e)))?;
-    key.get_value("InstallPath")
+    key.get_string("InstallPath")
         .map_err(|e| SteamPathError::RegistryError(format!("HKLM InstallPath 读取失败: {}", e)))
 }
 
