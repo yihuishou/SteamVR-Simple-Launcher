@@ -265,7 +265,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
         } else {
             Color::rgb(60, 60, 60)
         })
-        .margin(Thickness { left: 0.0, top: 4.0, right: 0.0, bottom: 0.0 });
+        .margin(Thickness { left: 12.0, top: 4.0, right: 0.0, bottom: 0.0 });
 
     // Toast 通知
     let toast_el: Element = if let Some((ref message, success)) = toast {
@@ -274,7 +274,10 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
         } else {
             Color::rgb(220, 80, 80)
         };
-        text_block(message).foreground(color).into()
+        text_block(message)
+            .foreground(color)
+            .margin(Thickness { left: 12.0, top: 0.0, right: 0.0, bottom: 0.0 })
+            .into()
     } else {
         text_block("").into()
     };
