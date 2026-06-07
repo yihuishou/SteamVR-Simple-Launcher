@@ -235,6 +235,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
         ComboBox::new(lang_names)
             .selected_index(selected_idx)
             .on_selection_changed(set_selected_idx)
+            .margin(Thickness { left: 0.0, top: 0.0, right: 0.0, bottom: 6.0 })
             .into(),
         button("应用更改")
             .on_click(apply_language)
