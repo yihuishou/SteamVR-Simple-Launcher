@@ -91,7 +91,10 @@ fn generate_runtime_embed() {
 
     for (key, path) in &entries {
         // 使用 r\"...\" 原始字符串避免反斜杠转义问题
-        code.push_str(&format!("    (\"{key}\", include_bytes!(r\"{}\")),\n", path.display()));
+        code.push_str(&format!(
+            "    (\"{key}\", include_bytes!(r\"{}\")),\n",
+            path.display()
+        ));
     }
 
     code.push_str("];\n");

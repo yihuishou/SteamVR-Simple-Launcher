@@ -44,9 +44,12 @@ fn detect_from_hkcu() -> Result<String, SteamPathError> {
 fn detect_from_hklm_wow64() -> Result<String, SteamPathError> {
     let key = LOCAL_MACHINE
         .open(r"SOFTWARE\WOW6432Node\Valve\SteamInstall")
-        .map_err(|e| SteamPathError::RegistryError(format!("HKLM WOW6432Node 子键打开失败: {}", e)))?;
-    key.get_string("InstallPath")
-        .map_err(|e| SteamPathError::RegistryError(format!("HKLM WOW6432Node InstallPath 读取失败: {}", e)))
+        .map_err(|e| {
+            SteamPathError::RegistryError(format!("HKLM WOW6432Node 子键打开失败: {}", e))
+        })?;
+    key.get_string("InstallPath").map_err(|e| {
+        SteamPathError::RegistryError(format!("HKLM WOW6432Node InstallPath 读取失败: {}", e))
+    })
 }
 
 /// 从 HKEY_LOCAL_MACHINE 读取 Steam 路径

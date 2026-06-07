@@ -63,22 +63,20 @@ fn get_desktop_path() -> Result<PathBuf, ShortcutError> {
 /// 获取图标持久化存放目录 (%APPDATA%\SteamVRLauncher\)
 /// 返回 Ok(目录路径, 图标文件路径)
 fn get_icon_persistent_path() -> Result<(PathBuf, PathBuf), ShortcutError> {
-    let appdata = std::env::var("APPDATA")
-        .map(PathBuf::from)
-        .or_else(|_| {
-            dirs::config_dir()
-                .map(|d| {
-                    #[cfg(windows)]
-                    {
-                        d.join("Microsoft")
-                    }
-                    #[cfg(not(windows))]
-                    {
-                        d
-                    }
-                })
-                .ok_or_else(|| ShortcutError::ShortcutCreateError("无法获取配置目录".to_string()))
-        })?;
+    let appdata = std::env::var("APPDATA").map(PathBuf::from).or_else(|_| {
+        dirs::config_dir()
+            .map(|d| {
+                #[cfg(windows)]
+                {
+                    d.join("Microsoft")
+                }
+                #[cfg(not(windows))]
+                {
+                    d
+                }
+            })
+            .ok_or_else(|| ShortcutError::ShortcutCreateError("无法获取配置目录".to_string()))
+    })?;
 
     let icon_dir = appdata.join("SteamVRLauncher");
     let icon_path = icon_dir.join(ICON_FILENAME);
@@ -120,10 +118,7 @@ fn extract_embedded_icon() -> Result<PathBuf, ShortcutError> {
 ///
 /// # Returns
 /// 成功返回 Ok(())，失败返回 ShortcutError
-pub fn create_desktop_shortcut(
-    target_path: &str,
-    working_dir: &str,
-) -> Result<(), ShortcutError> {
+pub fn create_desktop_shortcut(target_path: &str, working_dir: &str) -> Result<(), ShortcutError> {
     let desktop = get_desktop_path()?;
     let lnk_path = desktop.join("SteamVR.lnk");
 
@@ -154,7 +149,9 @@ mod tests {
 
     #[test]
     fn test_get_working_dir_from_exe() {
-        let dir = get_working_dir_from_exe("C:\\Steam\\steamapps\\common\\SteamVR\\bin\\win64\\vrstartup.exe");
+        let dir = get_working_dir_from_exe(
+            "C:\\Steam\\steamapps\\common\\SteamVR\\bin\\win64\\vrstartup.exe",
+        );
         assert_eq!(dir, "C:\\Steam\\steamapps\\common\\SteamVR\\bin\\win64");
     }
 
