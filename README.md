@@ -1,5 +1,7 @@
 # SteamVR-Simple-Lunch
 
+中文 | [English](README.en.md)
+
 ## ❓ 这是什么？
 
 SteamVR-Simple-Lunch 是一个轻量级的 SteamVR 启动器，专为 Windows 用户设计。它可以帮助你快速检测 SteamVR 安装路径、切换 Steam 语言、创建桌面快捷方式，并一键启动 SteamVR。
