@@ -165,6 +165,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
             .font_size(14.0)
             .foreground(Color::rgb(0, 0, 0))
             .bold()
+            .margin(Thickness { left: 0.0, top: 0.0, right: 0.0, bottom: 6.0 })
             .into(),
         if let Some(ref paths) = steam_paths {
             text_block(&paths.steamvr_path)
@@ -183,7 +184,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
         button("重新检测")
             .on_click(detect_steam)
             .enabled(!is_working)
-            .margin(Thickness { left: 0.0, top: 0.0, right: 0.0, bottom: 6.0 })
+            .margin(Thickness { left: 0.0, top: 6.0, right: 0.0, bottom: 6.0 })
             .into(),
         button("选择 SteamVR 安装路径")
             .on_click(move || {
@@ -204,6 +205,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
             .font_size(14.0)
             .foreground(Color::rgb(0, 0, 0))
             .bold()
+            .margin(Thickness { left: 0.0, top: 6.0, right: 0.0, bottom: 6.0 })
             .into(),
         if let Some(ref paths) = steam_paths {
             text_block(format!("目标: {}", paths.steamvr_exe)).into()
@@ -234,6 +236,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
             .font_size(14.0)
             .foreground(Color::rgb(0, 0, 0))
             .bold()
+            .margin(Thickness { left: 0.0, top: 0.0, right: 0.0, bottom: 6.0 })
             .into(),
         ComboBox::new(lang_names)
             .selected_index(selected_idx)
@@ -269,7 +272,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
         } else {
             Color::rgb(60, 60, 60)
         })
-        .margin(Thickness { left: 12.0, top: 4.0, right: 0.0, bottom: 0.0 });
+        .margin(Thickness { left: 12.0, top: 6.0, right: 0.0, bottom: 6.0 });
 
     // Toast 通知
     let toast_el: Element = if let Some((ref message, success)) = toast {
