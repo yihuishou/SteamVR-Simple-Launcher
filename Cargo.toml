@@ -4,15 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-eframe = "0.31"
-egui = "0.31"
-winreg = "0.52"
+windows-reactor = { git = "https://github.com/microsoft/windows-rs", branch = "master" }
+windows-core = "0.58"
+windows-registry = "0.6"
+windows-result = "0.2"
 dirs = "5"
 lnks = "0.2.0"
 rfd = "0.15"
-image = "0.25"
 
 [build-dependencies]
+windows-reactor-setup = { git = "https://github.com/microsoft/windows-rs", branch = "master" }
 winres = "0.1"
 
 [profile.release]
