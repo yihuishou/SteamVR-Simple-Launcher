@@ -1,5 +1,5 @@
 [package]
-name = "steamvr-launcher"
+name = "steamvr_launcher"
 version = "1.0.0"
 edition = "2021"
 

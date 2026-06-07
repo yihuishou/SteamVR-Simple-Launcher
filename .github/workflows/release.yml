@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Prepare artifacts
+        shell: pwsh
+        run: |
+          # 从 Cargo.toml 读取版本号
+          $toml = Get-Content "Cargo.toml" -Raw
+          if ($toml -match 'version\s*=\s*"([^"]+)"') {
+            $version = $Matches[1]
+          } else {
+            Write-Error "无法从 Cargo.toml 读取版本号"
+            exit 1
+          }
+          Write-Host "检测到版本号: $version"
+
+          New-Item -ItemType Directory -Path "dist" -Force
+          $exeName = "steamvr_launcher_v${version}.exe"
+          Copy-Item "target/release/steamvr_launcher.exe" -Destination "dist/$exeName"
+          Write-Host "已重命名为: $exeName"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: steamvr-launcher-windows
+          path: dist/
+
+  release:
+    needs: [ build-windows ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: steamvr-launcher-windows
+          path: dist/
+
+      - name: List artifacts
+        run: ls -la dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

@@ -179,7 +179,7 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
                 .foreground(Color::rgb(80, 200, 120))
                 .into()
         } else {
-            text_block("未检测到 SteamVR")
+            text_block("❌ 未检测到 SteamVR")
                 .foreground(Color::rgb(220, 80, 80))
                 .into()
         },
