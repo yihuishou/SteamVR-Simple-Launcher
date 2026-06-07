@@ -196,9 +196,8 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
     .border_brush(Brush::from(Color::rgb(80, 80, 80)))
     .border_thickness(Thickness { left: 1.0, top: 1.0, right: 1.0, bottom: 1.0 })
     .corner_radius(6.0)
-    .padding(12.0);
-
-    // 区域 2: 桌面快捷方式
+    .padding(12.0)
+    .margin(Thickness { left: 6.0, top: 6.0, right: 6.0, bottom: 6.0 });
     let shortcut_section = border(vstack(vec![
         text_block("桌面快捷方式")
             .font_size(14.0)
@@ -223,7 +222,8 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
     .border_brush(Brush::from(Color::rgb(80, 80, 80)))
     .border_thickness(Thickness { left: 1.0, top: 1.0, right: 1.0, bottom: 1.0 })
     .corner_radius(6.0)
-    .padding(12.0);
+    .padding(12.0)
+    .margin(Thickness { left: 6.0, top: 6.0, right: 6.0, bottom: 6.0 });
 
     // 区域 3: 语言设置
     let lang_names: Vec<String> = LANGUAGES.iter().map(|(name, _)| name.to_string()).collect();
@@ -249,7 +249,8 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
     .border_brush(Brush::from(Color::rgb(80, 80, 80)))
     .border_thickness(Thickness { left: 1.0, top: 1.0, right: 1.0, bottom: 1.0 })
     .corner_radius(6.0)
-    .padding(12.0);
+    .padding(12.0)
+    .margin(Thickness { left: 6.0, top: 6.0, right: 6.0, bottom: 6.0 });
 
     // 区域 4: 启动按钮
     let launch_btn = button("🚀 启动 SteamVR")
