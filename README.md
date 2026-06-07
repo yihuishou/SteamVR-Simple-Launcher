@@ -1,6 +1,10 @@
+<div align="center">
+
 # SteamVR-Simple-Launcher
 
-[![English](https://img.shields.io/badge/English-blue)](README.en.md) [![中文](https://img.shields.io/badge/中文-red)](README.md)
+[![English](https://img.shields.io/badge/English-blue)](README_EN.md) [![中文](https://img.shields.io/badge/中文-red)](README.md)
+
+</div>
 
 ## ❓ 这是什么？
 
@@ -38,8 +42,8 @@ SteamVR-Simple-Launcher 是一个轻量级的 SteamVR 启动器，专为 Windows
 
 ```powershell
 # 确保已安装 Rust 工具链
-git clone https://github.com/yihuishou/SteamVR-Simple-Lunch.git
-cd SteamVR-Simple-Lunch
+git clone https://github.com/yihuishou/SteamVR-Simple-Launcher.git
+cd SteamVR-Simple-Launcher
 cargo build --release
 ```
 
