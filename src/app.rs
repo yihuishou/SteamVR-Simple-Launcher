@@ -1,359 +1,293 @@
 use std::process::Command;
 use std::path::Path;
 
-use eframe::egui;
+use windows_reactor::{
+    Element, RenderCx, Color, Brush, Thickness, ElementExt,
+    text_block, button, vstack, border, ComboBox,
+};
 
 use crate::steam_path::{self, SteamPaths};
 use crate::steam_language::{self, LANGUAGES};
 use crate::shortcut_manager;
 
-/// Toast 通知状态
-struct Toast {
-    /// 消息内容
-    message: String,
-    /// 是否成功
-    success: bool,
-    /// 剩余显示时间 (秒)
-    remaining: f64,
-}
-
-/// 主应用状态
-pub struct SteamVrApp {
-    /// SteamVR 路径检测结果
-    steam_paths: Option<SteamPaths>,
-    /// 当前 Steam 语言值 (注册表原始值)
-    current_language: String,
-    /// 下拉框选中索引
-    selected_language: usize,
-    /// Toast 通知 (Some=显示中, None=无消息)
-    toast: Option<Toast>,
-  
-    /// 操作是否进行中 (防重复点击)
-    is_working: bool,
-    /// 上一帧时间戳
-    last_time: Option<f64>,
-}
-
-impl SteamVrApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        // 启动时自动检测 SteamVR 路径
-        let steam_paths = steam_path::detect_steam_path();
-
-        // 启动时自动读取当前语言
-        let current_language = steam_language::read_steam_language()
-            .unwrap_or_else(|_| "english".to_string());
-
-        // 根据当前语言匹配下拉框选中索引
-        let selected_language = LANGUAGES
+/// 主应用组件 — 接收 RenderCx 引用以使用 hooks
+pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
+    // 状态钩子 — use_state 接受初始值（非闭包），返回 (T, SetState<T>)
+    let (steam_paths, set_steam_paths) = cx.use_state(steam_path::detect_steam_path());
+    let (current_lang, set_current_lang) = cx.use_state(
+        steam_language::read_steam_language().unwrap_or_else(|_| "english".to_string()),
+    );
+    let (selected_idx, set_selected_idx) = cx.use_state({
+        let lang = current_lang.clone();
+        LANGUAGES
             .iter()
-            .position(|(_, val)| *val == current_language)
-            .unwrap_or(0);
+            .position(|(_, val)| *val == lang.as_str())
+            .unwrap_or(0) as i32
+    });
+    let (toast, set_toast) = cx.use_state(None::<(String, bool)>);
+    let (working, set_working) = cx.use_state(false);
 
-        Self {
-            steam_paths,
-            current_language,
-            selected_language,
-            toast: None,
-            is_working: false,
-            last_time: None,
-        }
-    }
+    // ── 事件回调 ──────────────────────────────────────────────
 
-    /// 显示 Toast 消息 (持续 6 秒)
-    fn show_toast(&mut self, message: String, success: bool) {
-        self.toast = Some(Toast {
-            message,
-            success,
-            remaining: 6.0,
-        });
-    }
-
-    /// 更新 Toast 计时器
-    fn update_toast(&mut self, dt: f64) {
-        if let Some(ref mut t) = self.toast {
-            t.remaining -= dt;
-            if t.remaining <= 0.0 {
-                self.toast = None;
-            }
-        }
-    }
-
-    /// 重新检测 SteamVR 路径
-    fn detect_steam(&mut self) {
-        self.is_working = true;
-        self.steam_paths = steam_path::detect_steam_path();
-        self.is_working = false;
-
-        if self.steam_paths.is_some() {
-            self.show_toast("✅ 检测到 SteamVR 路径".to_string(), true);
-        } else {
-            self.show_toast(
-                "❌ 未检测到 SteamVR，请手动指定路径".to_string(),
-                false,
-            );
-        }
-    }
-
-    /// 应用手动选择的 SteamVR 路径
-    fn apply_manual_path(&mut self, path: &str) {
-        self.is_working = true;
-
-        // 校验输入路径为绝对路径，防止路径注入
-        if !Path::new(path).is_absolute() {
-            self.show_toast("❌ 请选择有效的目录".to_string(), false);
-            self.is_working = false;
-            return;
-        }
-
-        // 先尝试直接拼接路径验证
-        let steamvr_exe = format!(
-            "{}\\steamapps\\common\\SteamVR\\bin\\win64\\vrstartup.exe",
-            path
-        );
-
-        if Path::new(&steamvr_exe).exists() {
-            self.steam_paths = Some(SteamPaths {
-                steamvr_path: path.to_string(),
-                steamvr_exe,
-            });
-            self.show_toast("✅ 路径验证成功".to_string(), true);
-        } else {
-            // 在选定目录及其子目录中递归搜索 vrstartup.exe
-            if let Some(found_paths) = steam_path::find_vrstartup_in_dir(path) {
-                self.steam_paths = Some(found_paths);
-                self.show_toast("✅ 在子目录中找到 SteamVR".to_string(), true);
+    // 重新检测 SteamVR 路径
+    let detect_steam = {
+        let set_steam_paths = set_steam_paths.clone();
+        let set_toast = set_toast.clone();
+        let set_working = set_working.clone();
+        move || {
+            set_working.call(true);
+            let new_paths = steam_path::detect_steam_path();
+            if new_paths.is_some() {
+                set_toast.call(Some(("✅ 检测到 SteamVR 路径".to_string(), true)));
             } else {
-                self.show_toast("❌ 未找到 SteamVR，请确认目录正确".to_string(), false);
+                set_toast.call(Some(("❌ 未检测到 SteamVR，请手动指定路径".to_string(), false)));
             }
+            set_steam_paths.call(new_paths);
+            set_working.call(false);
         }
+    };
 
-        self.is_working = false;
-    }
+    // 应用手动路径
+    let apply_manual_path = {
+        let set_steam_paths = set_steam_paths.clone();
+        let set_toast = set_toast.clone();
+        let set_working = set_working.clone();
+        move |path: String| {
+            set_working.call(true);
 
-    /// 创建桌面快捷方式
-    fn create_shortcut(&mut self) {
-        if let Some(ref paths) = self.steam_paths {
-            self.is_working = true;
-            let working_dir = shortcut_manager::get_working_dir_from_exe(&paths.steamvr_exe);
-
-            match shortcut_manager::create_desktop_shortcut(
-                &paths.steamvr_exe,
-                &working_dir,
-            ) {
-                Ok(()) => self.show_toast("✅ 桌面快捷方式创建成功".to_string(), true),
-                Err(e) => {
-                    self.show_toast(format!("❌ 创建快捷方式失败: {}", e), false);
-                }
-            }
-            self.is_working = false;
-        }
-    }
-
-    /// 应用语言更改
-    fn apply_language(&mut self) {
-        let lang_value = LANGUAGES[self.selected_language].1;
-        self.is_working = true;
-
-        match steam_language::write_steam_language(lang_value) {
-            Ok(()) => {
-                self.current_language = lang_value.to_string();
-                self.show_toast("✅ 语言已更改，需重启 Steam 生效".to_string(), true);
-            }
-            Err(e) => {
-                self.show_toast(format!("❌ 写入语言失败: {}", e), false);
-            }
-        }
-        self.is_working = false;
-    }
-
-    /// 启动 SteamVR
-    fn launch_steamvr(&mut self) {
-        if let Some(ref paths) = self.steam_paths {
-            self.is_working = true;
-
-            // 校验 exe 路径为绝对路径，防止路径注入
-            if !Path::new(&paths.steamvr_exe).is_absolute() {
-                self.show_toast("❌ 路径不安全，拒绝启动".to_string(), false);
-                self.is_working = false;
+            if !Path::new(&path).is_absolute() {
+                set_toast.call(Some(("❌ 请选择有效的目录".to_string(), false)));
+                set_working.call(false);
                 return;
             }
 
-            match Command::new(&paths.steamvr_exe).spawn() {
-                Ok(_) => self.show_toast("✅ SteamVR 启动中...".to_string(), true),
-                Err(e) => self.show_toast(format!("❌ 启动失败: {}", e), false),
+            let steamvr_exe = format!(
+                "{}\\steamapps\\common\\SteamVR\\bin\\win64\\vrstartup.exe",
+                path
+            );
+
+            if Path::new(&steamvr_exe).exists() {
+                set_steam_paths.call(Some(SteamPaths {
+                    steamvr_path: path.clone(),
+                    steamvr_exe,
+                }));
+                set_toast.call(Some(("✅ 路径验证成功".to_string(), true)));
+            } else if let Some(found_paths) = steam_path::find_vrstartup_in_dir(&path) {
+                set_steam_paths.call(Some(found_paths));
+                set_toast.call(Some(("✅ 在子目录中找到 SteamVR".to_string(), true)));
+            } else {
+                set_toast.call(Some(("❌ 未找到 SteamVR，请确认目录正确".to_string(), false)));
             }
-            self.is_working = false;
+
+            set_working.call(false);
         }
-    }
-}
+    };
 
-impl eframe::App for SteamVrApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // 计算帧间隔时间
-        let current_time = ctx.input(|i| i.time);
-        let dt = self
-            .last_time
-            .map(|t| current_time - t)
-            .unwrap_or(0.016); // 默认约 60fps
-        self.last_time = Some(current_time);
+    // 创建桌面快捷方式
+    let create_shortcut = {
+        let current_paths = steam_paths.clone();
+        let set_toast = set_toast.clone();
+        let set_working = set_working.clone();
+        move || {
+            if let Some(ref paths) = current_paths {
+                set_working.call(true);
+                let working_dir = shortcut_manager::get_working_dir_from_exe(&paths.steamvr_exe);
 
-        self.update_toast(dt);
-
-        egui::CentralPanel::default().show(ctx, |ui| {
- 
-
-            // ========== 区域 1: SteamVR 路径 ==========
-            egui::Frame::NONE
-                .fill(egui::Color32::from_black_alpha(40))
-                .inner_margin(egui::Margin::same(12))
-                .corner_radius(8.0)
-                .stroke(egui::Stroke::new(1.0, egui::Color32::from_gray(50)))
-                .show(ui, |ui| {
-                    ui.strong("SteamVR 路径");
-                    ui.separator();
-
-                    // 显示检测到的路径
-                    if let Some(ref paths) = self.steam_paths {
-                        let green = egui::Color32::from_rgb(80, 200, 120);
-                        ui.colored_label(green, &paths.steamvr_path);
-                        ui.separator();
-                        ui.label(format!("SteamVR: {}", paths.steamvr_exe));
-                    } else {
-                        let red = egui::Color32::from_rgb(220, 80, 80);
-                        ui.colored_label(red, "未检测到 SteamVR");
+                match shortcut_manager::create_desktop_shortcut(
+                    &paths.steamvr_exe,
+                    &working_dir,
+                ) {
+                    Ok(()) => set_toast.call(Some(("✅ 桌面快捷方式创建成功".to_string(), true))),
+                    Err(e) => {
+                        set_toast.call(Some((format!("❌ 创建快捷方式失败: {}", e), false)));
                     }
-
-                    ui.horizontal(|ui| {
-                        if ui
-                            .add_enabled(!self.is_working, egui::Button::new("重新检测").min_size(egui::vec2(200.0, 0.0)))
-                            .clicked()
-                        {
-                            self.detect_steam();
-                        }
-                    });
-
-                    // 选择 SteamVR 安装路径
-                    ui.separator();
-                    if ui
-                        .add_enabled(!self.is_working, egui::Button::new("📂 选择 SteamVR 安装路径").min_size(egui::vec2(200.0, 0.0)))
-                        .clicked()
-                    {
-                        // 打开文件夹选择对话框
-                        if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                            let path_str = path.to_string_lossy().to_string();
-                            self.apply_manual_path(&path_str);
-                        }
-                    }
-                });
-
-            ui.spacing();
-
-            // ========== 区域 2: 桌面快捷方式 ==========
-            egui::Frame::NONE
-                .fill(egui::Color32::from_black_alpha(40))
-                .inner_margin(egui::Margin::same(12))
-                .corner_radius(8.0)
-                .stroke(egui::Stroke::new(1.0, egui::Color32::from_gray(50)))
-                .show(ui, |ui| {
-                    ui.strong("桌面快捷方式");
-                    ui.separator();
-
-                    if let Some(ref paths) = self.steam_paths {
-                        ui.label(format!("目标: {}", paths.steamvr_exe));
-                     ui.horizontal(|ui| {
-                            if ui
-                                .add_enabled(
-                                    !self.is_working,
-                                    egui::Button::new("创建桌面快捷方式").min_size(egui::vec2(200.0, 0.0)),
-                                )
-                                .clicked()
-                            {
-                                self.create_shortcut();
-                            }
-                        });
-                    } else {
-                        ui.label("检测到 SteamVR 后可创建快捷方式");
-                    }
-                });
-
-            ui.spacing();
-
-            // ========== 区域 3: 语言设置 ==========
-            egui::Frame::NONE
-                .fill(egui::Color32::from_black_alpha(40))
-                .inner_margin(egui::Margin::same(12))
-                .corner_radius(8.0)
-                .stroke(egui::Stroke::new(1.0, egui::Color32::from_gray(50)))
-                .show(ui, |ui| {
-                    ui.strong("语言设置");
-                    ui.separator();
-
-                    // 下拉框
-                    let selected_name = LANGUAGES[self.selected_language].0;
-                    egui::ComboBox::from_label("选择语言")
-                        .selected_text(selected_name)
-                        .width(200.0)
-                        .show_ui(ui, |ui| {
-                            for (index, (display, _)) in LANGUAGES.iter().enumerate() {
-                                ui.selectable_value(
-                                    &mut self.selected_language,
-                                    index,
-                                    *display,
-                                );
-                            }
-                        });
-
-                    ui.horizontal(|ui| {
-                        if ui
-                            .add_enabled(!self.is_working, egui::Button::new("应用更改").min_size(egui::vec2(200.0, 0.0)))
-                            .clicked()
-                        {
-                            self.apply_language();
-                        }
-                    });
-
-                    let warning = egui::Color32::from_rgb(220, 180, 60);
-                    ui.colored_label(warning, "⚠️ 需重启 Steam 生效");
-                });
-
-            ui.spacing();
-
-            // ========== 区域 4: 启动 ==========
-            let has_steam = self.steam_paths.is_some();
-            if ui
-                .add_enabled(
-                    has_steam && !self.is_working,
-                    egui::Button::new(egui::RichText::new("🚀 启动 SteamVR").color(egui::Color32::BLACK))
-                        .min_size(egui::vec2(200.0, 0.0))
-                        .fill(if has_steam {
-                            egui::Color32::from_rgb(40, 120, 200)
-                        } else {
-                            egui::Color32::from_gray(60)
-                        }),
-                )
-                .clicked()
-            {
-                self.launch_steamvr();
+                }
+                set_working.call(false);
             }
+        }
+    };
 
-            ui.separator();
+    // 应用语言更改
+    let apply_language = {
+        let set_current_lang = set_current_lang.clone();
+        let selected_idx_val = selected_idx;
+        let set_toast = set_toast.clone();
+        let set_working = set_working.clone();
+        move || {
+            let lang_value = LANGUAGES[selected_idx_val as usize].1;
+            set_working.call(true);
 
-            // ========== Toast 通知 ==========
-            if let Some(ref toast) = self.toast {
-                let color = if toast.success {
-                    egui::Color32::from_rgb(80, 200, 120)
-                } else {
-                    egui::Color32::from_rgb(220, 80, 80)
-                };
-
-                egui::Frame::NONE
-                    .fill(egui::Color32::from_black_alpha(80))
-                    .inner_margin(egui::Margin::same(10))
-                    .corner_radius(6.0)
-                    .show(ui, |ui| {
-                        ui.colored_label(color, &toast.message);
-                    });
+            match steam_language::write_steam_language(lang_value) {
+                Ok(()) => {
+                    set_current_lang.call(lang_value.to_string());
+                    set_toast.call(Some(("✅ 语言已更改，需重启 Steam 生效".to_string(), true)));
+                }
+                Err(e) => {
+                    set_toast.call(Some((format!("❌ 写入语言失败: {}", e), false)));
+                }
             }
+            set_working.call(false);
+        }
+    };
+
+    // 启动 SteamVR
+    let launch_steamvr = {
+        let current_paths = steam_paths.clone();
+        let set_toast = set_toast.clone();
+        let set_working = set_working.clone();
+        move || {
+            if let Some(ref paths) = current_paths {
+                set_working.call(true);
+
+                if !Path::new(&paths.steamvr_exe).is_absolute() {
+                    set_toast.call(Some(("❌ 路径不安全，拒绝启动".to_string(), false)));
+                    set_working.call(false);
+                    return;
+                }
+
+                match Command::new(&paths.steamvr_exe).spawn() {
+                    Ok(_) => set_toast.call(Some(("✅ SteamVR 启动中...".to_string(), true))),
+                    Err(e) => set_toast.call(Some((format!("❌ 启动失败: {}", e), false))),
+                }
+                set_working.call(false);
+            }
+        }
+    };
+
+    // ── UI 布局 ──────────────────────────────────────────────
+
+    let has_steam = steam_paths.is_some();
+    let is_working = working;
+
+    // 区域 1: SteamVR 路径
+    let path_section = border(vstack(vec![
+        text_block("SteamVR 路径")
+            .font_size(14.0)
+            .foreground(Color::rgb(200, 200, 200))
+            .into(),
+        if let Some(ref paths) = steam_paths {
+            text_block(&paths.steamvr_path)
+                .foreground(Color::rgb(80, 200, 120))
+                .into()
+        } else {
+            text_block("未检测到 SteamVR")
+                .foreground(Color::rgb(220, 80, 80))
+                .into()
+        },
+        if let Some(ref paths) = steam_paths {
+            text_block(format!("SteamVR: {}", paths.steamvr_exe)).into()
+        } else {
+            text_block("请手动选择安装路径").into()
+        },
+        button("重新检测")
+            .on_click(detect_steam)
+            .enabled(!is_working)
+            .into(),
+        button("选择 SteamVR 安装路径")
+            .on_click(move || {
+                if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                    apply_manual_path(path.to_string_lossy().to_string());
+                }
+            })
+            .enabled(!is_working)
+            .into(),
+    ]))
+    .border_brush(Brush::from(Color::rgb(80, 80, 80)))
+    .border_thickness(Thickness { left: 1.0, top: 1.0, right: 1.0, bottom: 1.0 })
+    .corner_radius(6.0)
+    .padding(12.0);
+
+    // 区域 2: 桌面快捷方式
+    let shortcut_section = border(vstack(vec![
+        text_block("桌面快捷方式")
+            .font_size(14.0)
+            .foreground(Color::rgb(200, 200, 200))
+            .into(),
+        if let Some(ref paths) = steam_paths {
+            text_block(format!("目标: {}", paths.steamvr_exe)).into()
+        } else {
+            text_block("检测到 SteamVR 后可创建快捷方式").into()
+        },
+        if has_steam {
+            button("创建桌面快捷方式")
+                .on_click(create_shortcut)
+                .enabled(!is_working)
+                .into()
+        } else {
+            button("创建桌面快捷方式")
+                .enabled(false)
+                .into()
+        },
+    ]))
+    .border_brush(Brush::from(Color::rgb(80, 80, 80)))
+    .border_thickness(Thickness { left: 1.0, top: 1.0, right: 1.0, bottom: 1.0 })
+    .corner_radius(6.0)
+    .padding(12.0);
+
+    // 区域 3: 语言设置
+    let lang_names: Vec<String> = LANGUAGES.iter().map(|(name, _)| name.to_string()).collect();
+    let lang_section = border(vstack(vec![
+        text_block("语言设置")
+            .font_size(14.0)
+            .foreground(Color::rgb(200, 200, 200))
+            .into(),
+        ComboBox::new(lang_names)
+            .selected_index(selected_idx)
+            .on_selection_changed(set_selected_idx)
+            .into(),
+        button("应用更改")
+            .on_click(apply_language)
+            .enabled(!is_working)
+            .into(),
+        text_block("⚠️ 需重启 Steam 生效")
+            .foreground(Color::rgb(220, 180, 60))
+            .into(),
+    ]))
+    .border_brush(Brush::from(Color::rgb(80, 80, 80)))
+    .border_thickness(Thickness { left: 1.0, top: 1.0, right: 1.0, bottom: 1.0 })
+    .corner_radius(6.0)
+    .padding(12.0);
+
+    // 区域 4: 启动按钮
+    let launch_btn = button("🚀 启动 SteamVR")
+        .on_click(launch_steamvr)
+        .enabled(has_steam && !is_working)
+        .foreground(if has_steam {
+            Color::rgb(255, 255, 255)
+        } else {
+            Color::rgb(128, 128, 128)
+        })
+        .background(if has_steam {
+            Color::rgb(40, 120, 200)
+        } else {
+            Color::rgb(60, 60, 60)
         });
-    }
+
+    // Toast 通知
+    let toast_el: Element = if let Some((ref message, success)) = toast {
+        let color = if success {
+            Color::rgb(80, 200, 120)
+        } else {
+            Color::rgb(220, 80, 80)
+        };
+        text_block(message).foreground(color).into()
+    } else {
+        text_block("").into()
+    };
+
+    // 组合所有区域
+    vstack(vec![
+        path_section
+            .margin(Thickness { left: 0.0, top: 0.0, right: 0.0, bottom: 8.0 })
+            .into(),
+        shortcut_section
+            .margin(Thickness { left: 0.0, top: 0.0, right: 0.0, bottom: 8.0 })
+            .into(),
+        lang_section
+            .margin(Thickness { left: 0.0, top: 0.0, right: 0.0, bottom: 8.0 })
+            .into(),
+        launch_btn.into(),
+        toast_el,
+    ])
+    .into()
 }
