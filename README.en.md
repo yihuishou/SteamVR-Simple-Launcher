@@ -1,10 +1,10 @@
-# SteamVR-Simple-Lunch
+# SteamVR-Simple-Launcher
 
 [中文](README.md) | English
 
 ## ❓ What is this?
 
-SteamVR-Simple-Lunch is a lightweight SteamVR launcher designed for Windows users. It helps you quickly detect SteamVR installation path, switch Steam language, create desktop shortcuts, and launch SteamVR with one click.
+SteamVR-Simple-Launcher is a lightweight SteamVR launcher designed for Windows users. It helps you quickly detect SteamVR installation path, switch Steam language, create desktop shortcuts, and launch SteamVR with one click.
 
 ## ✨ Features
 
