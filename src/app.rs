@@ -163,7 +163,8 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
     let path_section = border(vstack(vec![
         text_block("SteamVR 路径")
             .font_size(14.0)
-            .foreground(Color::rgb(200, 200, 200))
+            .foreground(Color::rgb(0, 0, 0))
+            .bold()
             .into(),
         if let Some(ref paths) = steam_paths {
             text_block(&paths.steamvr_path)
@@ -201,7 +202,8 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
     let shortcut_section = border(vstack(vec![
         text_block("桌面快捷方式")
             .font_size(14.0)
-            .foreground(Color::rgb(200, 200, 200))
+            .foreground(Color::rgb(0, 0, 0))
+            .bold()
             .into(),
         if let Some(ref paths) = steam_paths {
             text_block(format!("目标: {}", paths.steamvr_exe)).into()
@@ -230,7 +232,8 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
     let lang_section = border(vstack(vec![
         text_block("语言设置")
             .font_size(14.0)
-            .foreground(Color::rgb(200, 200, 200))
+            .foreground(Color::rgb(0, 0, 0))
+            .bold()
             .into(),
         ComboBox::new(lang_names)
             .selected_index(selected_idx)
