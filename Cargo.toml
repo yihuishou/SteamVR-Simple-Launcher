@@ -4,6 +4,9 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
+toml = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+
 windows-reactor = { git = "https://github.com/microsoft/windows-rs", branch = "master" }
 windows-core = "0.58"
 windows-registry = "0.6"
