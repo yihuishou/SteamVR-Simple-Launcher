@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 use windows_registry::{CURRENT_USER, LOCAL_MACHINE};
 
 /// SteamVR 路径信息
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SteamPaths {
     /// SteamVR 安装根目录
     pub steamvr_path: String,
@@ -132,6 +133,33 @@ pub fn detect_steam_path() -> Option<SteamPaths> {
         steamvr_path: steam_path,
         steamvr_exe,
     })
+}
+
+/// 配置文件名称
+const CONFIG_FILE_NAME: &str = "steamvr_launcher_config.toml";
+
+/// 获取配置文件路径（exe 同级目录）
+fn config_path() -> Option<std::path::PathBuf> {
+    std::env::current_exe()
+        .ok()?
+        .parent()
+        .map(|dir| dir.join(CONFIG_FILE_NAME))
+}
+
+/// 从配置文件加载已保存的 SteamVR 路径（首次运行或文件不存在时返回 None）
+pub fn load_config() -> Option<SteamPaths> {
+    let path = config_path()?;
+    let content = std::fs::read_to_string(path).ok()?;
+    toml::from_str(&content).ok()
+}
+
+/// 将路径保存到配置文件（静默失败，不影响 UX）
+pub fn save_config(paths: &SteamPaths) {
+    if let Some(path) = config_path() {
+        if let Ok(content) = toml::to_string(paths) {
+            let _ = std::fs::write(path, content);
+        }
+    }
 }
 
 #[cfg(test)]

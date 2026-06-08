@@ -8,12 +8,14 @@ use windows_reactor::{
 
 use crate::shortcut_manager;
 use crate::steam_language::{self, LANGUAGES};
-use crate::steam_path::{self, SteamPaths};
+use crate::steam_path::{self, load_config, save_config, SteamPaths};
 
 /// 主应用组件 — 接收 RenderCx 引用以使用 hooks
 pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
     // 状态钩子 — use_state 接受初始值（非闭包），返回 (T, SetState<T>)
-    let (steam_paths, set_steam_paths) = cx.use_state(steam_path::detect_steam_path());
+    // 优先使用已保存的配置文件；若不存在再回退到注册表检测
+    let initial_paths = load_config().or_else(|| steam_path::detect_steam_path());
+    let (steam_paths, set_steam_paths) = cx.use_state(initial_paths);
     let (current_lang, set_current_lang) = cx
         .use_state(steam_language::read_steam_language().unwrap_or_else(|_| "english".to_string()));
     let (selected_idx, set_selected_idx) = cx.use_state({
@@ -37,6 +39,8 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
             set_working.call(true);
             let new_paths = steam_path::detect_steam_path();
             if new_paths.is_some() {
+                // 保存检测到的路径到配置文件
+                save_config(new_paths.as_ref().unwrap());
                 set_toast.call(Some(("✅ 检测到 SteamVR 路径".to_string(), true)));
             } else {
                 set_toast.call(Some((
@@ -69,12 +73,15 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
             );
 
             if Path::new(&steamvr_exe).exists() {
-                set_steam_paths.call(Some(SteamPaths {
+                let new_paths = Some(SteamPaths {
                     steamvr_path: path.clone(),
                     steamvr_exe,
-                }));
+                });
+                save_config(new_paths.as_ref().unwrap());
+                set_steam_paths.call(new_paths);
                 set_toast.call(Some(("✅ 路径验证成功".to_string(), true)));
             } else if let Some(found_paths) = steam_path::find_vrstartup_in_dir(&path) {
+                save_config(&found_paths);
                 set_steam_paths.call(Some(found_paths));
                 set_toast.call(Some(("✅ 在子目录中找到 SteamVR".to_string(), true)));
             } else {
