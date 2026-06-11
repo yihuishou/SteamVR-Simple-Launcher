@@ -384,25 +384,25 @@ pub fn steam_vr_launcher(cx: &mut RenderCx) -> Element {
     vstack(vec![
         path_section
             .margin(Thickness {
-                left: 0.0,
-                top: 0.0,
-                right: 0.0,
+                left: 8.0,
+                top: 8.0,
+                right: 8.0,
                 bottom: 8.0,
             })
             .into(),
         shortcut_section
             .margin(Thickness {
-                left: 0.0,
-                top: 0.0,
-                right: 0.0,
+                left: 8.0,
+                top: 8.0,
+                right: 8.0,
                 bottom: 8.0,
             })
             .into(),
         lang_section
             .margin(Thickness {
-                left: 0.0,
-                top: 0.0,
-                right: 0.0,
+                left: 8.0,
+                top: 8.0,
+                right: 8.0,
                 bottom: 8.0,
             })
             .into(),

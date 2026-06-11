@@ -16,12 +16,12 @@ fn main() {
     // DLL 搜索：LOAD_LIBRARY_SEARCH_APPLICATION_DIR 会自动搜索 exe 所在目录
     windows_reactor::App::new()
         .title("SteamVR 启动器")
-        .inner_size(500.0, 520.0)
+        .inner_size(500.0, 540.0)
         .inner_constraints(windows_reactor::InnerConstraints {
             min_width: Some(500.0),
             max_width: Some(500.0),
-            min_height: Some(520.0),
-            max_height: Some(520.0),
+            min_height: Some(540.0),
+            max_height: Some(540.0),
             ..Default::default()
         })
         .render(app::steam_vr_launcher)
