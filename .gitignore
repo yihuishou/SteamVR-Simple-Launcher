@@ -25,3 +25,6 @@ target
 
 # Sisyphus
 .sisyphus/
+
+# OpenCode
+.omo/
