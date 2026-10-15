@@ -23,8 +23,5 @@ target
 # CodeGraph
 .codegraph/
 
-# Sisyphus
-.sisyphus/
-
 # OpenCode
 .omo/
