@@ -13,19 +13,10 @@ fn main() {
     extract_runtime();
 
     // 第二步：启动 Windows Reactor 应用
+    //（0.100.0 Component 范式：窗口标题与客户区尺寸在组件 view 中经
+    //  ViewContext::window_title / window_visuals 声明，App 不再提供 title/inner_size API）
     // DLL 搜索：LOAD_LIBRARY_SEARCH_APPLICATION_DIR 会自动搜索 exe 所在目录
-    windows_reactor::App::new()
-        .title("SteamVR 启动器")
-        .inner_size(500.0, 540.0)
-        .inner_constraints(windows_reactor::InnerConstraints {
-            min_width: Some(500.0),
-            max_width: Some(500.0),
-            min_height: Some(540.0),
-            max_height: Some(540.0),
-            ..Default::default()
-        })
-        .render(app::steam_vr_launcher)
-        .expect("应用启动失败");
+    windows_reactor::App::run_component::<app::SteamVrApp>(()).expect("应用启动失败");
 }
 
 /// 将嵌入的运行时文件释放到 exe 同级目录
