@@ -6,6 +6,18 @@ fn main() {
     // 配置 Windows App SDK self-contained 部署（会下载运行时到 target 目录）
     windows_reactor_setup::as_self_contained();
 
+    // Windows 10 兼容（见 windows-rs issue #4866）：
+    // windows-reactor 0.100.0 的引导代码静态导入了 Win11 专属的
+    // TryCreatePackageDependency / AddPackageDependency（来自
+    // api-ms-win-appmodel-runtime-l1-1-5.dll）。在 Windows 10 上加载器
+    // 会在 main() 之前解析这些导入，找不到就报 0xc0000139。
+    // 用 MSVC /DELAYLOAD 把该 DLL 改为延迟加载：进程可正常启动，
+    // self-contained 模式实际不会触发这两个函数，故能正常运行。
+    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        println!("cargo:rustc-link-arg-bins=delayimp.lib");
+        println!("cargo:rustc-link-arg-bins=/DELAYLOAD:api-ms-win-appmodel-runtime-l1-1-5.dll");
+    }
+
     // 设置 Windows 资源（图标）
     #[cfg(windows)]
     {
